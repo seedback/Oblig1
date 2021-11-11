@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<title></title>
+	<style>
+		.image,
+		.pointsInfo {
+			font-size: 900%;
+			user-select: none;
+		}
+
+		.resetButton{
+			position:absolute;
+			top: 10px;
+			right: 10px;
+		}
+
+		.upgrade {
+			width: fit-content;
+			border: solid black 1px;
+			background-color: lightgrey;
+			display: flex;
+		}
+
+		.upgrade:hover{
+			background-color: rgb(184, 184, 184);
+		}
+
+		.upgradeText {
+			text-align: center;
+		}
+
+		.upgradeButton {
+			text-align: center;
+		}
+
+		.upgradeText,
+		.upgradeButton {
+			width: 150px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="app"></div>
+
+	<script>
+		// ##########################
+		// ###										###
+		// ###       MODEL        ###
+		// ###										###
+		// ##########################
+
+		const defaultPointsPerClick = 1;
+
+		var points = 0; 				// The amount of points the player has
+		var pointsPerClick = defaultPointsPerClick	// The amount of points the player gets per click
+		var smileyIndex = -1;		// The index of which smiley/emoji to use at any
+		// given time(changes every time the
+		// click-target (emoji) gets clicked)
+
+		// PPC = PointsPerClick
+		const PPCdefaultPrice = 10;
+		const PPCincrease = 0.1;				// The the amount of more points you get per click, per upgrade
+		const PPCpriceIncrease = 2;			// The amount the price increases each time it is bought
+		var PPCnumUpgrades = 0; 				// Counter for number of upgrades
+		var PPCprice = PPCdefaultPrice;	// The current price for an upgrde
+		// By having PPCpriceIncrease bigger than 10 * PPCincrease the amount of
+		// clicks per upgrade also increases per upgrade bought, thus incentivising
+		// autoclickers more
+
+
+		// ##########################
+		// ###										###
+		// ###     CONTROLER      ###
+		// ###										###
+		// ##########################
+
+		// Handles the clicking on the click-target (the emoji)
+		function doClick() {
+			points = addWithToFixed(points, pointsPerClick);
+			smileyIndex = getNextSmileyIndex(smileyIndex);
+			updateView();
+		}
+
+
+		console.log(costOfMultipleUpgrades(PPCprice, PPCpriceIncrease, 10, 20));
+		function upgradePPC(number, discount) {
+			let totalCost = costOfMultipleUpgrades(PPCprice, PPCpriceIncrease,
+				number, discount);
+
+			// Escapes if you don't have enough points
+			if (points < totalCost) return;
+			// Updates the new score
+			// Uses addWithToFixed() to fix rounding errors caused by Javascript, and
+			// also make the numbers more readable
+			// (without a 3rd parameter it returns a number with 1 decimal)
+			points = addWithToFixed(points, -totalCost);
+
+			// Updates the differents stats
+			pointsPerClick += 0.1 * number;
+			PPCnumUpgrades += number;
+			PPCprice += (PPCpriceIncrease * number)
+
+			updateView();
+		}
+
+		function resetGame(){
+			points = 0;
+			pointsPerClick = defaultPointsPerClick;
+			smileyIndex = -1;
+			PPCprice = PPCdefaultPrice;
+			PPCnumUpgrades = 0;
+			updateView();
+		}
+
+		// ##########################
+		// ###										###
+		// ###        VIEW        ###
+		// ###										###
+		// ##########################
+
+		updateView();
+		function updateView() {
+			// Gets the currently active smiley to use for the click-target
+			var smiley = getSmiley(smileyIndex);
+
+			// Writing the whole page anew within the "app" Div
+			document.getElementById('app').innerHTML = `
+							<div class="image" onclick="doClick()">${smiley}</div>
+							<div class="pointsInfo">${points}</div>
+							<button class="resetButton" onclick="resetGame()">Reset</button>
+							<div id="upgradeMenu">
+								<div class="upgradeMenuTitle">
+									<h3 style="margin-bottom: 0px;">Oppgraderinger:</h3>
+									<h5 style="margin-top: 0px;">(Det er billigere å kjøpe flere oppgraderinger på en gang)</h5>
+								</div>
+
+								<!-- Upgrade buttons for the points-per-click upgrade -->
+								<div class="upgrade">
+									<div class="upgradeTextBg" onclick="upgradePPC(1, 0)">
+										<h4 class="upgradeText">
+											Poeng per klikk (${PPCnumUpgrades})<br/>
+											(${costOfMultipleUpgrades(PPCprice, PPCpriceIncrease, 1, 0)} poeng)
+										</h4>
+									</div>
+									<button class="upgradeButton"onclick="upgradePPC(5, 5)">Kjøp 5 (${costOfMultipleUpgrades(PPCprice, PPCpriceIncrease, 5, 5)} poeng)<br/>(5 poeng avslag)</button>
+									<button class="upgradeButton"onclick="upgradePPC(10, 20)">Kjøp 10 (${costOfMultipleUpgrades(PPCprice, PPCpriceIncrease, 10, 20)} poeng)<br/>(20 poeng avslag)</button>
+								</div>
+							</div
+			`;
+		}
+
+		// ##########################
+		// ###										###
+		// ###  HJELPEFUNKSJONER  ###
+		// ###										###
+		// ##########################
+
+		// Gets the curent smiley dependent on the current index
+		function getSmiley(aSmileyIndex) {
+			if (aSmileyIndex == -1) return '😐';	// Only to be used when the player hasn't clicked on it yet
+			if (aSmileyIndex == 0) return '😀';
+			if (aSmileyIndex == 1) return '😁';
+			if (aSmileyIndex == 2) return '😋';
+			return '';
+		}
+
+		// Updates the smiley-index
+		function getNextSmileyIndex(aSmileyIndex) {
+			const maxSmileyIndex = 2; // Equals the amount of smileys -1
+
+			// Adds one to the index
+			// and if more than maxSmileyIndex wraps around to 0
+			aSmileyIndex++;
+			if (aSmileyIndex > maxSmileyIndex) {
+				aSmileyIndex = 0;
+			}
+			return aSmileyIndex;
+		}
+
+		// Adds two numbers with the added functionality of
+		// adjusting the decimal precision (default 1 decimal)
+		function addWithToFixed(x, y, precision = 1) {
+			return parseFloat((x + y).toFixed(precision));
+		}
+
+		console.log(costOfMultipleUpgrades(PPCprice, PPCpriceIncrease, 10, 20));
+
+		// TODO: Refactor costOfMultipleUpgrades() so point growth makes sense
+		// Calculates the cost of buying multiple upgrades where the price of each
+		// upgrade increases with each purchase
+		// The discount is calculated based on the total price increase
+		function costOfMultipleUpgrades(baseCost, increase, number, discount = 0) {
+			let totalCost = 0;
+			let iterCost = 0;
+
+			// To catch the end of the recursion
+			// (was added before number == 1 but kept for safety's sake)
+			if (number <= 0) {
+				alert("costOfMultipleUpgrades() was attempted run with a number smaller than 1");
+				return -1;
+			}
+
+			// Calculate the cost of this iteration only
+			totalCost = (baseCost + (number - 1) * increase);
+
+			// If more iterations are needed, recursively run this function
+			if (number > 1){
+				totalCost += costOfMultipleUpgrades(baseCost, increase, number - 1);
+			}
+
+			return totalCost - discount;
+		}
+
+	</script>
+</body>
+
+</html>
